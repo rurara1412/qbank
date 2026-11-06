@@ -1069,7 +1069,10 @@ let photos=rawStore.get('photos',{});   // 男主角頭像 {id: dataURL}
 // 表情：img/avatar/<id>_1~3.jpg，對應 答對／答錯／出題時
 const MOOD={boss:{ok:2,ng:3,ask:1},puppy:{ok:1,ng:2,ask:3},yandere:{ok:3,ng:2,ask:1},senior:{ok:1,ng:3,ask:2},lawyer:{ok:2,ng:3,ask:1},coach:{ok:3,ng:2,ask:1}};
 const photoOf=(p,mood)=>{if(!p)return '';if(photos[p.id])return photos[p.id];if(!PERSONAS.some(x=>x.id===p.id))return '';const m=mood&&MOOD[p.id]&&MOOD[p.id][mood];return 'img/avatar/'+p.id+(m?'_'+m:'')+'.jpg'};
-const avHTML=(p,cls,mood)=>{const src=photoOf(p,mood);return `<span class="av ${cls||''}" aria-hidden="true"><i>${esc((p&&(p.av||p.name[0]))||'?')}</i>${src?`<img src="${esc(src)}" alt="" onerror="this.remove()">`:''}</span>`};
+/* 頭貼載入失敗時，依序改試 avatar/、根目錄，都沒有才顯示文字頭貼 */
+function avFail(el){const s=el.getAttribute('src')||'';const f=s.split('/').pop();const tries=['avatar/'+f,f];const n=+(el.dataset.t||0);
+  if(!s.startsWith('data:')&&n<tries.length){el.dataset.t=n+1;el.src=tries[n];return}el.remove()}
+const avHTML=(p,cls,mood)=>{const src=photoOf(p,mood);return `<span class="av ${cls||''}" aria-hidden="true"><i>${esc((p&&(p.av||p.name[0]))||'?')}</i>${src?`<img src="${esc(src)}" alt="" onerror="avFail(this)">`:''}</span>`};
 function setPhoto(id,file){if(!file)return;if(!/^image\//.test(file.type)){toast('請選擇圖片檔');return}
   const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const S=320,c=document.createElement('canvas');c.width=c.height=S;const s=Math.min(im.width,im.height);
     c.getContext('2d').drawImage(im,(im.width-s)/2,(im.height-s)/2*0.6,s,s,0,0,S,S);photos[id]=c.toDataURL('image/jpeg',.85);rawStore.set('photos',photos);toast('頭像已更新');render()};
